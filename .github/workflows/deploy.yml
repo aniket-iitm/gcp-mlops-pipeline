@@ -17,7 +17,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: 'read'
+      contents: 'write'
       id-token: 'write'
 
     steps:
@@ -33,6 +33,14 @@ jobs:
 
     - name: Set up Cloud SDK
       uses: 'google-github-actions/setup-gcloud@v2'
+
+    - name: Install gke-gcloud-auth-plugin
+      run: gcloud components install gke-gcloud-auth-plugin
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
     - name: Run training script to generate artifacts
       run: python train.py
