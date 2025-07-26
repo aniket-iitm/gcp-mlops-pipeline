@@ -1,6 +1,5 @@
 name: Continuous Deployment to GKE
 
-# Trigger on 'dev' for testing, change to 'main' for production
 on:
   pull_request:
     branches:
