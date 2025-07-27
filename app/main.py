@@ -14,7 +14,6 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
 
-# --- THIS IS THE MOST ROBUST SETUP ---
 # 1. Get the Project ID from the environment variable.
 project_id = os.getenv("GCP_PROJECT_ID")
 
