@@ -62,6 +62,7 @@ jobs:
         sed -i "s|DOCKER_IMAGE_PLACEHOLDER|${{ steps.build-image.outputs.IMAGE_NAME }}|g" k8s/deployment.yaml
         kubectl apply -f k8s/deployment.yaml
         kubectl apply -f k8s/service.yaml
+        kubectl apply -f k8s/hpa.yaml
         kubectl rollout status deployment iris-classifier-deployment
 
     - name: Generate CML Report

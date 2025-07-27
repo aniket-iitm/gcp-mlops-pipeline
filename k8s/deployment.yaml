@@ -17,6 +17,18 @@ spec:
         image: DOCKER_IMAGE_PLACEHOLDER # This will be replaced by our CI/CD pipeline
         ports:
         - containerPort: 8000
+        readinessProbe:
+          httpGet:
+            path: /ready_check
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /live_check
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
         resources:
           requests:
             cpu: "100m"      # Request 10% of a CPU core.
