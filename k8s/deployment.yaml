@@ -17,6 +17,12 @@ spec:
       containers:
       - name: iris-api
         image: DOCKER_IMAGE_PLACEHOLDER
+        env:
+        - name: GCP_PROJECT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: gke-gcp-metadata
+              key: project-id
         ports:
         - containerPort: 8000
         # No resource requests needed - Autopilot handles this.
