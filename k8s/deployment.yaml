@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: iris-classifier-deployment
 spec:
-  replicas: 2 # Run 2 pods for availability
+  replicas: 2
   selector:
     matchLabels:
       app: iris-classifier
@@ -12,11 +12,15 @@ spec:
       labels:
         app: iris-classifier
     spec:
+      # This is the key for Autopilot: Link the KSA to the GSA
+      serviceAccountName: telemetry-access
       containers:
       - name: iris-api
-        image: DOCKER_IMAGE_PLACEHOLDER # This will be replaced by our CI/CD pipeline
+        image: DOCKER_IMAGE_PLACEHOLDER
         ports:
         - containerPort: 8000
+        # No resource requests needed - Autopilot handles this.
+        # Probes are still a good idea.
         readinessProbe:
           httpGet:
             path: /ready_check
@@ -29,10 +33,3 @@ spec:
             port: 8000
           initialDelaySeconds: 15
           periodSeconds: 20
-        resources:
-          requests:
-            cpu: "100m"      # Request 10% of a CPU core.
-            memory: "128Mi"  # Request 128 Megabytes of RAM
-          limits:
-            cpu: "500m"      # Limit to 50% of a CPU core.
-            memory: "512Mi"
