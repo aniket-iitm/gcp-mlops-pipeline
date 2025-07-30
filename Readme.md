@@ -733,6 +733,4 @@ kubectl apply -f k8s/deployment.yaml --dry-run=client
 > - Use Infrastructure-as-Code (Terraform, CloudFormation, ARM) for repeatable provisioning.  
 > - Abstract environment-specific values into variables or CI/CD secrets.  
 > - Modularize manifests with Helm or Kustomize for multi-project reuse.  
-> - Maintain separate `dev`, `staging`, and `prod` configurations for safe promotion.  
-
-Congratulations! You now have a fully detailed, generalizable MLOps CI/CD pipeline guide ready for any ML service on Kubernetes.  
+> - Maintain separate `dev`, `staging`, and `prod` configurations for safe promotion.
