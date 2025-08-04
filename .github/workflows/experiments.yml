@@ -1,0 +1,65 @@
+name: Data Poisoning Experiments
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  run-poisoning-experiment:
+    strategy:
+      matrix:
+        poison_level: [0, 5, 10, 50] # The percentages we want to test
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: pip install -r requirements.txt
+    
+    - name: Poison the data (${{ matrix.poison_level }}%)
+      run: |
+        # Convert the integer percentage to a float (e.g., 5 -> 0.05)
+        level_float=$(echo "${{ matrix.poison_level }} / 100" | bc -l)
+        python poison_data.py --level $level_float
+
+    - name: Run training script on poisoned data
+      run: python train.py --data-path data/iris_poisoned.csv
+      
+    - name: Run validation tests
+      # This step is expected to fail for poisoned data, but we want to see the report.
+      # 'continue-on-error: true' ensures the workflow continues to the CML step.
+      id: validation
+      continue-on-error: true
+      run: pytest --verbose > report.md
+
+    - name: Generate CML Report
+      env:
+        REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Add a title to the report indicating the poison level
+        echo "## 🧪 Validation Results for ${{ matrix.poison_level }}% Poisoned Data" > temp_report.md
+        
+        # Add the test status
+        if [[ "${{ steps.validation.outcome }}" == "success" ]]; then
+          echo "✅ **Tests Passed**" >> temp_report.md
+        else
+          echo "❌ **Tests Failed** (This is expected for poisoned data)" >> temp_report.md
+        fi
+        
+        cat report.md >> temp_report.md
+        
+        # Install CML and post the combined report
+        npm install -g @dvcorg/cml
+        cml comment create temp_report.md
