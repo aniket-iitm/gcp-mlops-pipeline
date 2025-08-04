@@ -39,7 +39,7 @@ def test_model_performance_against_threshold():
         print(f"Found accuracy from CI run: {accuracy_value}")
         
         # This assertion is our quality gate. It will PASS for the 0% run and FAIL for others.
-        assert accuracy_value > 0.85, f"Model accuracy {accuracy_value} is below the 0.85 threshold."
+        assert accuracy_value >= 0.85, f"Model accuracy {accuracy_value} is below the 0.85 threshold."
 
     except (ValueError, IndexError):
         pytest.fail(f"Could not parse accuracy from metrics.txt. Check its format. Content was: '{content}'")

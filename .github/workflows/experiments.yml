@@ -37,12 +37,11 @@ jobs:
     - name: Run training script on poisoned data
       run: python train.py --data-path data/iris_poisoned.csv
       
-    - name: Run validation tests
-      # This step is expected to fail for poisoned data, but we want to see the report.
-      # 'continue-on-error: true' ensures the workflow continues to the CML step.
+
+    - name: ✅ Run validation tests
       id: validation
       continue-on-error: true
-      run: pytest --verbose > report.md
+      run: python -m pytest --verbose > report.md
 
     - name: Generate CML Report
       env:
