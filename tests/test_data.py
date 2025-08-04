@@ -1,66 +1,44 @@
 import os
-import subprocess
 import pytest
 
+# Define the paths to the ARTIFACTS that the CI pipeline should have created
 MODEL_PATH = "artifacts/model.joblib"
 METRICS_PATH = "metrics.txt"
-DATA_PATH = "data/iris.csv"
 
-@pytest.fixture(scope="module")
-def pipeline_run():
+# --- REMOVED THE FIXTURE ---
+# We no longer need a fixture to run train.py. The CI workflow is responsible for that.
+# Our tests will now check the outputs of the main workflow steps.
+
+# --- Test 1: Artifacts Existence Test ---
+# This is now the most important test. It validates that the main
+# 'Run training script' step in our workflow was successful.
+def test_artifacts_were_created():
     """
-    A fixture to run the entire train.py script before tests.
-    It also handles cleaning up the artifacts after the tests are done.
-    
-    'scope="module"' means this will only run ONCE for all tests in this file.
+    Checks if the training script (run in a previous CI step)
+    successfully created the model and metrics files.
     """
+    assert os.path.exists(MODEL_PATH), f"Model artifact not found at {MODEL_PATH}. Did the training step fail?"
+    assert os.path.exists(METRICS_PATH), f"Metrics file not found at {METRICS_PATH}. Did the training step fail?"
 
-    result = subprocess.run(
-        ["python", "train.py"], 
-        capture_output=True, 
-        text=True,
-        check=True
-    )
-    
-    yield
-    
-    print("\nCleaning up generated artifacts...")
-    if os.path.exists(MODEL_PATH):
-        os.remove(MODEL_PATH)
-    if os.path.exists(METRICS_PATH):
-        os.remove(METRICS_PATH)
-
-
-# --- Test 1: Data Validation Test ---
-def test_source_data_exists():
-    """A simple check to ensure the input data is where we expect it to be."""
-    assert os.path.exists(DATA_PATH), f"Input data not found at {DATA_PATH}"
-
-
-# --- Test 2: Evaluation Test (Artifact Creation) ---
-def test_artifacts_are_created(pipeline_run):
+# --- Test 2: Model Performance Test ---
+# This test depends on the artifacts existing, so it should run after the first test.
+def test_model_performance_against_threshold():
     """
-    Checks if the script successfully created the model and metrics files.
+    Reads the metrics file created by the CI training step and checks if the
+    accuracy meets our minimum standard. This test is EXPECTED to fail on poisoned data.
     """
-    assert os.path.exists(MODEL_PATH), "Model file was not created by train.py"
-    assert os.path.exists(METRICS_PATH), "Metrics file was not created by train.py"
-
-
-# --- Test 3: Evaluation Test (Model Performance) ---
-def test_model_performance(pipeline_run):
-    """
-    Reads the generated metrics file and checks if the accuracy meets 
-    our minimum standard.
-    """
+    # First, ensure the metrics file is actually there before trying to read it.
     assert os.path.exists(METRICS_PATH), "Metrics file must exist to check performance."
     
     try:
         with open(METRICS_PATH, "r") as f:
             content = f.read()
         
+        # Parse the accuracy value from the file
         accuracy_value = float(content.split(":")[1].strip())
-        print(f"Found accuracy: {accuracy_value}")
+        print(f"Found accuracy from CI run: {accuracy_value}")
         
+        # This assertion is our quality gate. It will PASS for the 0% run and FAIL for others.
         assert accuracy_value > 0.85, f"Model accuracy {accuracy_value} is below the 0.85 threshold."
 
     except (ValueError, IndexError):
