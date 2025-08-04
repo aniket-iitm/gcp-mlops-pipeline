@@ -12,6 +12,9 @@ jobs:
         poison_level: [0, 5, 10, 50] # The % we want to test
 
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
     
     steps:
     - name: Checkout repository
