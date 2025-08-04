@@ -15,7 +15,6 @@ jobs:
 
     permissions:
       contents: write
-
     
     steps:
     - name: Checkout repository
@@ -63,4 +62,4 @@ jobs:
         
         # Install CML and post the combined report
         npm install -g @dvcorg/cml
-        cml comment create temp_report.md
+        cml comment create --commit-sha ${{ github.sha }} temp_report.md
