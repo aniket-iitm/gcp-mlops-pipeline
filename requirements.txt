@@ -3,6 +3,7 @@ uvicorn[standard]
 scikit-learn
 joblib
 pandas
+pytest
 
 # OpenTelemetry Packages for Tracing
 opentelemetry-api
