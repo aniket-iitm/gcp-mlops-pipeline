@@ -11,6 +11,7 @@ METRICS_PATH = "metrics.txt"
 # --- Test 1: Artifacts Existence Test ---
 # This test is good. It validates that the main 'Run training script' step
 # in our workflow was successful.
+
 def test_artifacts_were_created():
     """
     Checks if the training script (run in a previous CI step)
@@ -24,6 +25,7 @@ def test_artifacts_were_created():
 def test_model_performance_and_save_results():
     """
     Reads the metrics, asserts accuracy, and saves prediction results for plotting.
+
     """
     # First, ensure the metrics file is actually there before trying to read it.
     assert os.path.exists(METRICS_PATH), "Metrics file must exist to check performance."
@@ -47,6 +49,7 @@ def test_model_performance_and_save_results():
         with open(METRICS_PATH, "r") as f:
             content = f.read()
         
+        # Parse the accuracy value from the file
         accuracy_value = float(content.split(":")[1].strip())
         print(f"Found accuracy from CI run: {accuracy_value}")
         
@@ -61,6 +64,7 @@ def test_model_performance_and_save_results():
         print("Test results saved to test_results.json for plotting.")
 
         # --- Part 4: The assertion (our quality gate) ---
+
         assert accuracy_value >= 0.85, f"Model accuracy {accuracy_value} is below the 0.85 threshold."
 
     except (ValueError, IndexError):
