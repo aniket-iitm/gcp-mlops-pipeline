@@ -7,7 +7,6 @@ on:
 
 jobs:
   run-poisoning-experiment:
-    # Use a matrix strategy to run this job for each poison level
     strategy:
       matrix:
         poison_level: [0, 5, 10, 50] # The percentages we want to test
