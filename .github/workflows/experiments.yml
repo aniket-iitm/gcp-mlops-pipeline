@@ -42,22 +42,30 @@ jobs:
       continue-on-error: true
       run: python -m pytest --verbose > report.md
 
-    - name: Generate CML Report
+    - name: 📊 Generate Visual Plots
+      run: python generate_plots.py --poison-level ${{ matrix.poison_level }}
+
+    - name: 📝 Generate CML Report with Plots
       env:
         REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Add a title to the report indicating the poison level
-        echo "## 🧪 Validation Results for ${{ matrix.poison_level }}% Poisoned Data" > temp_report.md
+        # Create the report title
+        echo "## 🧪 Validation Results for ${{ matrix.poison_level }}% Poisoned Data" > report.md
         
-        # Add the test status
         if [[ "${{ steps.validation.outcome }}" == "success" ]]; then
-          echo "✅ **Tests Passed**" >> temp_report.md
+          echo "✅ **Validation Passed**" >> report.md
         else
-          echo "❌ **Tests Failed** (This is expected for poisoned data)" >> temp_report.md
+          echo "❌ **Validation Failed** (As expected for poisoned data)" >> report.md
         fi
         
-        cat report.md >> temp_report.md
+        # --- NEW: Add the plots to the report using Markdown ---
+        echo "### Model Accuracy" >> report.md
+        echo "![Accuracy Chart](plots/accuracy_chart_${{ matrix.poison_level }}.png)" >> report.md
         
-        # Install CML and post the combined report
+        echo "### Confusion Matrix" >> report.md
+        echo "![Confusion Matrix](plots/confusion_matrix_${{ matrix.poison_level }}.png)" >> report.md
+        
+        # Install CML and post the report
         npm install -g @dvcorg/cml
-        cml comment create --commit-sha ${{ github.sha }} temp_report.md
+        cml comment create --commit-sha ${{ github.sha }} report.md
+
