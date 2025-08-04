@@ -9,7 +9,7 @@ jobs:
   run-poisoning-experiment:
     strategy:
       matrix:
-        poison_level: [0, 5, 10, 50] # The percentages we want to test
+        poison_level: [0, 5, 10, 50] # The % we want to test
 
     runs-on: ubuntu-latest
 
