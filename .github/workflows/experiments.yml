@@ -37,7 +37,6 @@ jobs:
     - name: Run training script on poisoned data
       run: python train.py --data-path data/iris_poisoned.csv
       
-
     - name: ✅ Run validation tests
       id: validation
       continue-on-error: true
