@@ -41,8 +41,8 @@ jobs:
           python train.py --data-path data/iris_poisoned.csv
       
       - name: ✅ Run validation tests & generate results
-        # This is a critical fix. It ensures that even if pytest fails (which we expect),
-        # the subsequent steps in this job will still run.
+        # This is a critical fix. It ensures that even if pytest fails (which we expect)
+        # The subsequent steps in this job will still run.
         continue-on-error: true
         run: |
           source .venv/bin/activate
