@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import metrics
 import joblib
+import argparse
 import os
 
 DATA_PATH = 'data/iris.csv'
@@ -13,18 +14,18 @@ MODEL_NAME = 'model.joblib'
 METRICS_FILE = 'metrics.txt'
 MODEL_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
 
-def train_and_evaluate():
+def train_and_evaluate(data_path: str): # <-- Add data_path argument
     """
-    This function loads data, trains the model, evaluates it,
+    This function loads data from a given path, trains the model, evaluates it,
     and saves artifacts. It returns the model's accuracy.
     """
     os.makedirs(MODEL_DIR, exist_ok=True)
 
-    print(f"Loading data from {DATA_PATH}...")
+    print(f"Loading data from {data_path}...") # <-- Use the argument
     try:
-        data = pd.read_csv(DATA_PATH)
+        data = pd.read_csv(data_path) # <-- Use the argument
     except FileNotFoundError:
-        print(f"Error: {DATA_PATH} not found.")
+        print(f"Error: {data_path} not found.")
         exit(1)
     print("Data loaded successfully.")
 
@@ -58,6 +59,15 @@ def train_and_evaluate():
     return accuracy
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train the Iris classifier.")
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        default=DATA_PATH, # <-- Defaults to the original clean data
+        help="Path to the training data CSV file."
+    )
+    args = parser.parse_args()
+    
     print("Running train.py as a script...")
-    train_and_evaluate()
+    train_and_evaluate(data_path=args.data_path) # <-- Pass the argument
     print("train.py script finished.")

@@ -3,6 +3,9 @@ uvicorn[standard]
 scikit-learn
 joblib
 pandas
+pytest
+matplotlib
+seaborn
 
 # OpenTelemetry Packages for Tracing
 opentelemetry-api
