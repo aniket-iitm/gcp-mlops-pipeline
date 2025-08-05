@@ -38,18 +38,23 @@ def plot_results(poison_level):
         plt.close()
         print(f"Confusion matrix saved to {cm_path}")
 
-        # --- 2. Generate Accuracy Bar Chart ---
-        # We'll just create a simple bar chart showing the single accuracy value
+        # --- 2. Generate Accuracy Bar Chart (Improved) ---
         plt.figure(figsize=(6, 4))
-        sns.barplot(x=['Accuracy'], y=[accuracy])
-        plt.ylim(0, 1.0)
-        plt.title(f'Model Accuracy (Poison Level: {poison_level}%)')
-        plt.ylabel('Accuracy Score')
-        
+        # We use a color that stands out and looks professional
+        ax = sns.barplot(x=['Accuracy'], y=[accuracy], palette=['#4c72b0'])
+        plt.ylim(0, 1.1) # Extend the y-limit a bit to give the text more room
+        plt.title(f'Model Accuracy (Poison Level: {poison_level}%)', fontsize=14, pad=20) # Add padding to the title
+        plt.ylabel('Accuracy Score', fontsize=12)
+        plt.xlabel('') # Remove the 'Accuracy' x-axis label which is redundant
+        plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # Hide x-axis ticks
+
         # Add the accuracy value on top of the bar
-        plt.text(0, accuracy + 0.05, f'{accuracy:.3f}', ha='center', va='bottom', fontsize=12)
+        ax.text(0, accuracy / 2, f'{accuracy:.3f}', ha='center', va='center', fontsize=14, color='white', weight='bold')
 
         acc_path = f'plots/accuracy_chart_{poison_level}.png'
+
+        # Use tight_layout to ensure everything fits nicely before saving
+        plt.tight_layout()
         plt.savefig(acc_path)
         plt.close()
         print(f"Accuracy chart saved to {acc_path}")
