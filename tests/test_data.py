@@ -1,8 +1,8 @@
 import os
 import pytest
 import json
-import joblib         # <-- ADD THIS IMPORT
-import pandas as pd     # <-- ADD THIS IMPORT
+import joblib        
+import pandas as pd     
 
 # Define the paths to the ARTIFACTS that the CI pipeline should have created
 MODEL_PATH = "artifacts/model.joblib"
