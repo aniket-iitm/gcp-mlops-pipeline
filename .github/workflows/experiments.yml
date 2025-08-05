@@ -8,8 +8,10 @@ on:
 jobs:
   # --- JOB 1: RUN THE EXPERIMENTS IN PARALLEL ---
   run-poisoning-experiment:
-    # This part is mostly the same
+
     strategy:
+      # This ensures all matrix jobs run to completion, even if one fails.
+      fail-fast: false
       matrix:
         poison_level: [0, 5, 10, 50]
     runs-on: ubuntu-latest
@@ -40,6 +42,10 @@ jobs:
           python train.py --data-path data/iris_poisoned.csv
       
       - name: ✅ Run validation tests & generate results
+
+        # This is a critical fix. It ensures that even if pytest fails (which we expect),
+        # the subsequent steps in this job will still run.
+        continue-on-error: true
         run: |
           source .venv/bin/activate
           python -m pytest --verbose
@@ -49,7 +55,6 @@ jobs:
           source .venv/bin/activate
           python generate_plots.py --poison-level ${{ matrix.poison_level }}
       
-      # --- NEW: Upload artifacts for the publish job ---
       - name: Upload experiment artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -57,11 +62,15 @@ jobs:
           path: |
             plots/
             metrics.txt
+            test_results.json
 
   # --- JOB 2: PUBLISH THE FINAL, COMBINED REPORT ---
   publish-report:
-    # This job runs only after all the matrix jobs in 'run-poisoning-experiment' are complete
+    # This job runs only after all matrix jobs in 'run-poisoning-experiment' are finished.
     needs: run-poisoning-experiment
+    # This is a critical fix. It ensures this job runs even if some of the
+    # experiment jobs failed (which is our expected outcome).
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -71,7 +80,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # --- NEW: Download all artifacts from the experiment jobs ---
       - name: Download all experiment artifacts
         uses: actions/download-artifact@v4
         with:
@@ -81,22 +89,27 @@ jobs:
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # --- This script builds the single Markdown report ---
-          
+
+          # Start the Markdown report
+
           echo "## 🧪 Data Poisoning Experiment Summary" > report.md
           echo "This report shows the impact of label poisoning on the Iris classifier's accuracy." >> report.md
           
           # Create the comparison table header
           echo "" >> report.md
           echo "| Poison Level | Accuracy | Validation Status |" >> report.md
-          echo "|--------------|----------|-------------------|------------|" >> report.md
+
+          echo "|--------------|----------|-------------------|" >> report.md # Fixed table header
+
           
           # Loop through each experiment result to build the table
           for level in 0 5 10 50; do
             METRICS_FILE="all-results/experiment-results-${level}/metrics.txt"
             if [ -f "$METRICS_FILE" ]; then
               ACCURACY=$(cat $METRICS_FILE | awk -F': ' '{print $2}')
-              # Check if accuracy is above threshold
+
+              # Check if accuracy is above the 0.85 threshold
+
               STATUS_ICON="✅ Passed"
               if (( $(echo "$ACCURACY < 0.85" | bc -l) )); then
                 STATUS_ICON="❌ Failed"
@@ -122,6 +135,7 @@ jobs:
             fi
           done
           
-          # Install CML and post the single, beautiful report
+          # Install CML and post the single, beautiful report to the specific commit
           npm install -g @dvcorg/cml
           cml comment create --commit-sha ${{ github.sha }} report.md
+
