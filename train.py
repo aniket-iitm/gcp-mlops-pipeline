@@ -63,11 +63,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-path",
         type=str,
-        default=DATA_PATH, # <-- Defaults to the original clean data
+        default=DATA_PATH, 
         help="Path to the training data CSV file."
     )
     args = parser.parse_args()
     
     print("Running train.py as a script...")
-    train_and_evaluate(data_path=args.data_path) # <-- Pass the argument
+    train_and_evaluate(data_path=args.data_path) 
     print("train.py script finished.")
