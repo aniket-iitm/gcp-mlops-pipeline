@@ -6,65 +6,122 @@ on:
       - dev
 
 jobs:
+  # --- JOB 1: RUN THE EXPERIMENTS IN PARALLEL ---
   run-poisoning-experiment:
+    # This part is mostly the same
     strategy:
       matrix:
-        poison_level: [0, 5, 10, 50] # The % we want to test
-
+        poison_level: [0, 5, 10, 50]
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: 🧪 Poison the data (${{ matrix.poison_level }}%)
+        run: |
+          source .venv/bin/activate
+          level_float=$(echo "${{ matrix.poison_level }} / 100" | bc -l)
+          python poison_data.py --level $level_float
+
+      - name: 🏋️ Run training script
+        run: |
+          source .venv/bin/activate
+          python train.py --data-path data/iris_poisoned.csv
+      
+      - name: ✅ Run validation tests & generate results
+        run: |
+          source .venv/bin/activate
+          python -m pytest --verbose
+
+      - name: 📊 Generate Visual Plots
+        run: |
+          source .venv/bin/activate
+          python generate_plots.py --poison-level ${{ matrix.poison_level }}
+      
+      # --- NEW: Upload artifacts for the publish job ---
+      - name: Upload experiment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-results-${{ matrix.poison_level }}
+          path: |
+            plots/
+            metrics.txt
+
+  # --- JOB 2: PUBLISH THE FINAL, COMBINED REPORT ---
+  publish-report:
+    # This job runs only after all the matrix jobs in 'run-poisoning-experiment' are complete
+    needs: run-poisoning-experiment
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install Dependencies
-      run: pip install -r requirements.txt
-    
-    - name: Poison the data (${{ matrix.poison_level }}%)
-      run: |
-        # Convert the integer percentage to a float (e.g., 5 -> 0.05)
-        level_float=$(echo "${{ matrix.poison_level }} / 100" | bc -l)
-        python poison_data.py --level $level_float
-
-    - name: Run training script on poisoned data
-      run: python train.py --data-path data/iris_poisoned.csv
+      # --- NEW: Download all artifacts from the experiment jobs ---
+      - name: Download all experiment artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-results/
       
-    - name: ✅ Run validation tests
-      id: validation
-      continue-on-error: true
-      run: python -m pytest --verbose > report.md
-
-    - name: 📊 Generate Visual Plots
-      run: python generate_plots.py --poison-level ${{ matrix.poison_level }}
-
-    - name: 📝 Generate CML Report with Plots
-      env:
-        REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        # Create the report title
-        echo "## 🧪 Validation Results for ${{ matrix.poison_level }}% Poisoned Data" > report.md
-        
-        if [[ "${{ steps.validation.outcome }}" == "success" ]]; then
-          echo "✅ **Validation Passed**" >> report.md
-        else
-          echo "❌ **Validation Failed** (As expected for poisoned data)" >> report.md
-        fi
-        
-        # --- NEW: Add the plots to the report using Markdown ---
-        echo "### Model Accuracy" >> report.md
-        echo "![Accuracy Chart](plots/accuracy_chart_${{ matrix.poison_level }}.png)" >> report.md
-        
-        echo "### Confusion Matrix" >> report.md
-        echo "![Confusion Matrix](plots/confusion_matrix_${{ matrix.poison_level }}.png)" >> report.md
-        
-        # Install CML and post the report
-        npm install -g @dvcorg/cml
-        cml comment create --commit-sha ${{ github.sha }} report.md
+      - name: 📝 Generate Final CML Report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # --- This script builds the single Markdown report ---
+          
+          echo "## 🧪 Data Poisoning Experiment Summary" > report.md
+          echo "This report shows the impact of label poisoning on the Iris classifier's accuracy." >> report.md
+          
+          # Create the comparison table header
+          echo "" >> report.md
+          echo "| Poison Level | Accuracy | Validation Status |" >> report.md
+          echo "|--------------|----------|-------------------|------------|" >> report.md
+          
+          # Loop through each experiment result to build the table
+          for level in 0 5 10 50; do
+            METRICS_FILE="all-results/experiment-results-${level}/metrics.txt"
+            if [ -f "$METRICS_FILE" ]; then
+              ACCURACY=$(cat $METRICS_FILE | awk -F': ' '{print $2}')
+              # Check if accuracy is above threshold
+              STATUS_ICON="✅ Passed"
+              if (( $(echo "$ACCURACY < 0.85" | bc -l) )); then
+                STATUS_ICON="❌ Failed"
+              fi
+              echo "| **${level}%** | ${ACCURACY} | ${STATUS_ICON} |" >> report.md
+            fi
+          done
+          
+          # Add the plots for each experiment in a collapsible section
+          for level in 0 5 10 50; do
+            CM_PATH="all-results/experiment-results-${level}/plots/confusion_matrix_${level}.png"
+            ACC_PATH="all-results/experiment-results-${level}/plots/accuracy_chart_${level}.png"
+            if [ -f "$CM_PATH" ]; then
+              echo "" >> report.md
+              echo "<details><summary><strong>📊 Plots for ${level}% Poisoning</strong></summary>" >> report.md
+              echo "" >> report.md
+              echo "#### Model Accuracy" >> report.md
+              echo "![Accuracy Chart](${ACC_PATH})" >> report.md
+              echo "#### Confusion Matrix" >> report.md
+              echo "![Confusion Matrix](${CM_PATH})" >> report.md
+              echo "" >> report.md
+              echo "</details>" >> report.md
+            fi
+          done
+          
+          # Install CML and post the single, beautiful report
+          npm install -g @dvcorg/cml
+          cml comment create --commit-sha ${{ github.sha }} report.md
