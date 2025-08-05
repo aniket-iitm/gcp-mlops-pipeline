@@ -47,6 +47,7 @@ def test_model_performance_and_save_results():
         with open(METRICS_PATH, "r") as f:
             content = f.read()
         
+        # Parse the accuracy value from the file
         accuracy_value = float(content.split(":")[1].strip())
         print(f"Found accuracy from CI run: {accuracy_value}")
         
